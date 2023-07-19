@@ -2,7 +2,45 @@ import pygame,time,random,math,os,copy
 import carAIv3 as carAI
 import PyUI as pyui
 pygame.init()
+global linecrosses
+linecrosses = 0
 
+def linecross(L1,L2):
+    global linecrosses
+    linecrosses+=1
+    #print(L1,L2)
+##    x1,x2,x3,x4,y1,y2,y3 ,y4 = L1[0][0],L1[1][0],L2[0][0],L2[1][0],L1[0][1],L1[1][1],L2[0][1],L2[1][1]
+##    xcross = (x1*(x3*(-2*y1+y2+2*y3-y4)+x4*(2*y1-y2-y3))+x2*(x3*(y1-2*y3+y4)+x4*(y3-y1)))/(y3*(x1-x2)+y4*(x2-x1)+y1*(x4-x3)+y2*(x3-x4))
+    a,b,c,d,e,f,g,h = L1[0][0],L1[1][0],L2[0][0],L2[1][0],L1[0][1],L1[1][1],L2[0][1],L2[1][1]
+    try:
+        xcross = (a*(c*(h-f)+d*(f-g))+b*(c*(e-h)+d*(g-e)))/((g*(b-a)+h*(a-b)+e*(c-d)+f*(d-c)))
+        if abs(a-b) < 0.001:
+            ycross = (xcross-c)*((g-h)/(c-d))+g
+        else:
+            ycross = ((e-f)*(xcross-a))/(a-b)+e
+
+        dis = 0.1
+        if a<b:
+            if xcross<a-dis or xcross>b+dis: return False,1
+        else:
+            if xcross<b-dis or xcross>a+dis: return False,2
+        if c<d:
+            if xcross<c-dis or xcross>d+dis: return False,3
+        else:
+            if xcross<d-dis or xcross>c+dis: return False,4
+        if e<f:
+            if ycross<e-dis or ycross>f+dis: return False,5
+        else:
+            if ycross<f-dis or ycross>e+dis: return False,6
+        if g<h:
+            if ycross<g-dis or ycross>h+dis: return False,7
+        else:
+            if ycross<h-dis or ycross>g+dis: return False,8
+
+        return True,xcross,ycross
+    except:
+        return False,9
+    
 def pointangles(p):
     if p[0][1]-p[1][1] == 0:
         return math.pi/4
@@ -43,26 +81,26 @@ def pointtranslatedraw(point,camcords,zoom):
     return endpoint
 
 
-def polyescape(center,poly,angle=0):
+def polyescape(center,poly,angle=0.5):
     crosses = 0
     dis = 100000
     for a in range(len(poly)):
         awayline = [center,[center[0]+(dis*math.cos(angle/180*math.pi)),center[1]+(dis*math.sin(angle/180*math.pi))]]
-        collide = pyui.linecross(awayline,[poly[a],poly[a-1]])
+        collide = linecross(awayline,[poly[a],poly[a-1]])
         if collide[0]:
             crosses+=1
-    crosses2 = 0
-    for a in range(len(poly)):
-        awayline = [center,[center[0]+(dis*math.sin(angle/180*math.pi)),center[1]+(dis*math.cos(angle/180*math.pi))]]
-        collide = pyui.linecross(awayline,[poly[a],poly[a-1]])
-        if collide[0]:
-            crosses2+=1
-    if crosses%2!=crosses2%2:
-        return polyescape(center,poly,0.5)
-    else:
-        if crosses%2:
-            return True
-        return False
+##    crosses2 = 0
+##    for a in range(len(poly)):
+##        awayline = [center,[center[0]+(dis*math.sin(angle/180*math.pi)),center[1]+(dis*math.cos(angle/180*math.pi))]]
+##        collide = linecross(awayline,[poly[a],poly[a-1]])
+##        if collide[0]:
+##            crosses2+=1
+##    if crosses%2!=crosses2%2:
+##        return polyescape(center,poly,0.5)
+##    else:
+    if crosses%2:
+        return True
+    return False
     
 ##    dis = 100000
 ##    searchdetail = 4
@@ -76,7 +114,7 @@ def polyescape(center,poly,angle=0):
 ##                awayline = [center,[(center[0])+(dis*math.cos(angle/180*math.pi)),(center[1])+(dis*math.sin(angle/180*math.pi))]]
 ##                escaped = True
 ##                for b in range(len(poly)):
-##                    collide = pyui.linecross(awayline,[poly[b],poly[b-1]])
+##                    collide = linecross(awayline,[poly[b],poly[b-1]])
 ##                    if collide[0]:
 ##                        escaped = False
 ##                    
@@ -188,6 +226,8 @@ def polygonlimit(poly,camcords,zoom,tab):
             pattern.append(True)
         else:
             pattern.append(False)
+##    if sum(pattern) == 0:
+##        return [[]]
     npoly = []
     screencross = []
     npattern = []
@@ -195,7 +235,7 @@ def polygonlimit(poly,camcords,zoom,tab):
     for b in range(len(pattern)):
         if pattern[b]!=pattern[b-1]:
             for c in range(len(screenlines)):
-                crossing = pyui.linecross(screenlines[c],[poly[b],poly[b-1]])
+                crossing = linecross(screenlines[c],[poly[b],poly[b-1]])
 ##                print(crossing,screenlines[c],[poly[b],poly[b-1]],b,c)
                 if crossing[0]:
                     npoly.append([crossing[1],crossing[2],c])
@@ -207,7 +247,7 @@ def polygonlimit(poly,camcords,zoom,tab):
         if not(pattern[b] or pattern[b-1]):
             crossnum = 0
             for c in range(len(screenlines)):
-                crossing = pyui.linecross([poly[b],poly[b-1]],screenlines[c])
+                crossing = linecross([poly[b],poly[b-1]],screenlines[c])
                 if crossing[0]:  
                     crossnum+=1
                     if crossnum == 1:
@@ -490,7 +530,7 @@ class CAR:
     ##                            self.marklines.append([(a.cornerpoints[rec-1][0],a.cornerpoints[rec-1][1]),(a.cornerpoints[rec][0],a.cornerpoints[rec][1])])
     ##                            self.marklines.append([(self.hitboxpoints[ca-1][0],self.hitboxpoints[ca-1][1]),(self.hitboxpoints[ca][0],self.hitboxpoints[ca][1])])
                                 #print(a.displaypoly,rec,self.hitboxpoints,ca)
-                                temp = pyui.linecross([(a.displaypoly[self.carid][c][rec-1][0],a.displaypoly[self.carid][c][rec-1][1]),(a.displaypoly[self.carid][c][rec][0],a.displaypoly[self.carid][c][rec][1])],[(self.hitboxpoints[ca-1][0],self.hitboxpoints[ca-1][1]),(self.hitboxpoints[ca][0],self.hitboxpoints[ca][1])])
+                                temp = linecross([(a.displaypoly[self.carid][c][rec-1][0],a.displaypoly[self.carid][c][rec-1][1]),(a.displaypoly[self.carid][c][rec][0],a.displaypoly[self.carid][c][rec][1])],[(self.hitboxpoints[ca-1][0],self.hitboxpoints[ca-1][1]),(self.hitboxpoints[ca][0],self.hitboxpoints[ca][1])])
                                 if temp[0]!=False:
                                     self.collisionpoints.append([temp[1],temp[2]])
                                     self.markpoint.append([temp[1],temp[2]])
@@ -518,7 +558,7 @@ class CAR:
                     exi = False
                     for rec in range(len(a.cornerpoints)):
                         for ca in range(len(self.hitboxpoints)):
-                            temp = pyui.linecross([(a.cornerpoints[rec-1][0],a.cornerpoints[rec-1][1]),(a.cornerpoints[rec][0],a.cornerpoints[rec][1])],[(self.hitboxpoints[ca-1][0],self.hitboxpoints[ca-1][1]),(self.hitboxpoints[ca][0],self.hitboxpoints[ca][1])])
+                            temp = linecross([(a.cornerpoints[rec-1][0],a.cornerpoints[rec-1][1]),(a.cornerpoints[rec][0],a.cornerpoints[rec][1])],[(self.hitboxpoints[ca-1][0],self.hitboxpoints[ca-1][1]),(self.hitboxpoints[ca][0],self.hitboxpoints[ca][1])])
                             if temp[0]!=False:
                                 exi = True
                                 break
@@ -563,18 +603,17 @@ class CAR:
                 col = [wheelmats[a][-1][0]*colran,wheelmats[a][-1][1]*colran,wheelmats[a][-1][2]*colran]
                 particles.append(['particle',random.gauss(time.time()+timemod,2.5),[(((self.maxspeeds[self.gear-1])*-0.1)+random.gauss(-self.maxspeeds[self.gear-1]/3,1))*velmod,self.angle+random.gauss(0,0.3)],col,wheelcords[a][:]])
 
-    def particlegen(self,particles,ground,screenmat,particlequantity,movetype):
+    def particlegen(self,particles,ground,screenmat,particlequantity,surf,movetype):
+        matcols = [a[-1] for a in self.materials]
         wheeldis = self.cornerlength*0.7
         wheelcords = [[self.x-wheeldis*math.cos(self.cornerangle+self.angle),self.y-wheeldis*math.sin(self.cornerangle+self.angle)],[self.x-wheeldis*math.sin((math.pi/2-self.cornerangle)+self.angle),self.y+wheeldis*math.cos((math.pi/2-self.cornerangle)+self.angle)],[self.x+wheeldis*math.sin(math.pi/2-self.cornerangle+self.angle),self.y-wheeldis*math.cos(math.pi/2-self.cornerangle+self.angle)],[self.x+wheeldis*math.cos(self.cornerangle+self.angle),self.y+wheeldis*math.sin(self.cornerangle+self.angle)]]
         oldwheelcords = [[self.prevstate[0]-wheeldis*math.cos(self.cornerangle+self.prevstate[2]),self.prevstate[1]-wheeldis*math.sin(self.cornerangle+self.prevstate[2])],[self.prevstate[0]-wheeldis*math.sin((math.pi/2-self.cornerangle)+self.prevstate[2]),self.prevstate[1]+wheeldis*math.cos((math.pi/2-self.cornerangle)+self.prevstate[2])],[self.prevstate[0]+wheeldis*math.sin(math.pi/2-self.cornerangle+self.prevstate[2]),self.prevstate[1]-wheeldis*math.cos(math.pi/2-self.cornerangle+self.prevstate[2])],[self.prevstate[0]+wheeldis*math.cos(self.cornerangle+self.prevstate[2]),self.prevstate[1]+wheeldis*math.sin(self.cornerangle+self.prevstate[2])]]
         wheelmats = []
         for a in range(len(wheelcords)):
-            wheelmats.append(self.material)
-##            wheelmats.append(self.pointmat(wheelcords[a],ground,screenmat))
-##            try:
-##                wheelmats.append(mats[matcols.index(screen.get_at((int(wheelcords[a][0]+tab[0]-camcords[0]),int(wheelcords[a][1]+tab[1]-camcords[1]))))])
-##            except:
-##                wheelmats.append(['road',0.77,0.99,0.995,30,(100,100,100)])
+            try:
+                wheelmats.append(self.materials[matcols.index(surf.get_at((int(wheelcords[a][0]-self.camcords[0]),int(wheelcords[a][1]-self.camcords[1]))))])
+            except:
+                wheelmats.append(self.material)
         if not(movetype == 'accelerate' or movetype == 'reverse'):
             for a in range(2):
                 if wheelmats[a][0] == 'road':
@@ -618,7 +657,7 @@ class CAR:
         for a in range(len(self.dropspeeds)):
             self.dropspeeds[a] = self.dropspeedsp[a]+0.8*(self.dropspeedsp[a+1]-self.dropspeedsp[a])
                 
-    def move(self,ground,particles,screen,particlequantity,screenmat):
+    def move(self,ground,particles,screen,particlequantity,screenmat,surf):
 
         if self.racedata[0]: self.racedata[1]+=1
         self.prevstate = [self.x,self.y,self.angle,self.x-self.prevstate[0],self.y-self.prevstate[1]]
@@ -632,7 +671,7 @@ class CAR:
         friction = (1-(angledif/self.materialslip)/1.8)
         self.velocity[0] = (self.velocity[0])*(airres)*friction*self.materialdrag
         gr = (abs(self.mass*self.velocity[0]-(self.mass*self.velocity[0]*math.cos(self.turning*0.01*abs(self.velocity[0]))))/self.grip+1)
-     
+
         self.x+=self.velocity[0]*math.cos(self.velocity[1])
         self.kickout('self.x',self.velocity[0]*math.cos(self.velocity[1]),ground)
         self.y+=self.velocity[0]*math.sin(self.velocity[1])
@@ -651,21 +690,21 @@ class CAR:
 
             
         if gr>1.05:
-            particles = self.particlegen(particles,ground,screenmat,particlequantity,'turning')
+            particles = self.particlegen(particles,ground,screenmat,particlequantity,surf,'turning')
         
         if self.accelerating>0:
             self.applyforce(self.engine/self.mass*self.materialgrip*self.gearratio[self.gear-1]*self.accelerating,self.angle)
-            particles = self.particlegen(particles,ground,screenmat,particlequantity,'accelerate')
+            particles = self.particlegen(particles,ground,screenmat,particlequantity,surf,'accelerate')
         if self.braking>0:
             angledif = abs(self.angle%(2*math.pi)-self.velocity[1]%(2*math.pi))
             if angledif>math.pi: angledif = 2*math.pi-angledif
             if angledif>math.pi/2:
                 self.applyforce(self.engine/self.mass*self.materialgrip*self.gearratio[0]*self.braking,self.angle+math.pi)
                 angledif = abs(angledif-math.pi)
-                particles = self.particlegen(particles,ground,screenmat,particlequantity,'reverse')
+                particles = self.particlegen(particles,ground,screenmat,particlequantity,surf,'reverse')
             else:
                 self.applyforce(self.brakeforce/self.mass*self.materialgrip*self.braking,self.angle+math.pi) 
-                particles = self.particlegen(particles,ground,screenmat,particlequantity,'braking')
+                particles = self.particlegen(particles,ground,screenmat,particlequantity,surf,'braking')
         return particles
 
     def camerafollow(self,anglec,dynamiccamera,zoom):
@@ -944,10 +983,8 @@ class surface:
         elif self.shape == 'cricle':
             p = pointtranslate([self.x,self.y],camcords,zoom)
             dra = False
-##            nrect = copy.deepcopy(tabrect)
             if self.selected: pygame.draw.circle(screen,(0,0,0),p,(self.radius+3)*zoom)
             pygame.draw.circle(screen,self.material[-1],p,self.radius*zoom)
-
         elif self.shape == 'checkpoint':
             self.setvalues()
             plim = polygonlimit(self.cornerpoints,camcords,zoom,tab)
@@ -996,7 +1033,10 @@ class MAIN:
         self.efficientpolygons = True
         self.dynamiccamera = True
         self.particlequantity = 1
-        self.frameskip = 2
+        self.frameskip = 1
+
+        self.prevcrosses = 0
+        self.cars = []
 
         #spin grip drag slip
         self.materials = [['road',0.77,0.99,0.995,30,(100,100,100)],['ice',0.96,0.5,1,1000,(207,241,255)],['dirt',0.85,0.7,0.99,70,(108,101,55)],['sand',0.72,0.2,0.95,10,(227,218,119)],['wall',0.77,0.99,0.995,30,(0,0,0)],['grass',0.93,0.7,0.96,10,(42,156,2)],['gravel',0.87,0.9,0.99,200,(160,160,160)]]
@@ -1081,17 +1121,25 @@ class MAIN:
         ui.makebutton(290,190,'{on}',30,self.exit,'pause',spacing=3,roundedcorners=10,clickdownsize=2,objanchor=('w','h'))
 
         ## settings
-        ui.makewindowedmenu(0,0,400,400,'settings','main',anchor=('w/2','h/2'),center=True,roundedcorners=10,col=(120,120,120),scalesize=False,ID='settings menu')
+        ui.makewindowedmenu(0,0,400,280,'settings','main',anchor=('w/2','h/2'),center=True,roundedcorners=10,col=(120,120,120),scalesize=False,ID='settings menu')
         ui.maketext(200,10,'Settings',70,'settings',center=True,centery=False,backingcol=(120,120,120),scalesize=False)
+        ui.maketext(10,85,'FrameSkip 1',30,'settings',objanchor=(0,'h/2'),backingcol=(120,120,120),scalesize=False,ID='frameskip text')
+        ui.makeslider(155,85,225,16,10,'settings',minp=1,startp=self.frameskip,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1),border=2,objanchor=(0,'h/2'),increment=1,ID='frameskip slider')
+        ui.maketext(10,125,'Particles 1',30,'settings',objanchor=(0,'h/2'),backingcol=(120,120,120),scalesize=False,ID='particle text')
+        ui.makeslider(155,125,225,16,1,'settings',minp=0,startp=self.particlequantity,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1),border=2,objanchor=(0,'h/2'),increment=0.1,ID='particle slider')
+        for i,a in enumerate([('Rotate Screen',self.cameraangled),('Camera Move',self.dynamiccamera),('Efficient Polygons',self.efficientpolygons)]):
+            ui.maketext(150,165+i*40,a[0],30,'settings',center=True,backingcol=(120,120,120),scalesize=False)
+            ui.makecheckbox(300,165+i*40,40,self.updatesettings,'settings',spacing=-2,border=4,center=True,clickdownsize=2,width=26,height=26,ID=a[0],toggle=a[1])
+        
 
         ## opening
         ui.makewindowedmenu(0,0,400,200,'opening','game',anchor=('w/2','h/2'),center=True,roundedcorners=10,col=(120,120,120))
-        ui.maketext(200,7,'Open',70,'opening',center=True,centery=False,backingcol=(120,120,120),scalesize=False)
+        ui.maketext(200,7,'Open',70,'opening',center=True,centery=False,backingcol=(120,120,120))
         ui.maketextbox(10,70,'',380,height=120,menu='opening',ID='opening textbox',roundedcorners=5,command=self.openground)
 
         ## saving
         ui.makewindowedmenu(0,0,400,200,'saving','game',anchor=('w/2','h/2'),center=True,roundedcorners=10,col=(120,120,120))
-        ui.maketext(200,7,'Save',70,'saving',center=True,centery=False,backingcol=(120,120,120),scalesize=False)
+        ui.maketext(200,7,'Save',70,'saving',center=True,centery=False,backingcol=(120,120,120))
         ui.maketextbox(10,70,'',380,height=120,menu='saving',ID='saving textbox',roundedcorners=5,command=self.saveground)
 
         self.addcargui()
@@ -1116,6 +1164,7 @@ class MAIN:
         ui.maketext(x+8,y+125,'Split Screen',35,centery=True,ID=index+'sstext')
         ui.makecheckbox(x+170,y+125,45,lambda: self.checkboxupdate(index),spacing=-8,centery=True,clickdownsize=2,toggle=self.makemenucars[int(index)][1],ID=index+'sstoggle')
         self.checkboxupdate(index)
+        self.updatesettings()
     def remcargui(self,index):
         for a in self.carguidel:
             ui.delete(index+a)
@@ -1141,9 +1190,26 @@ class MAIN:
         if ui.activemenu == 'pause': ui.IDs['settings menu'].behindmenu = 'game'
         else: ui.IDs['settings menu'].behindmenu = ui.activemenu
         ui.movemenu('settings','down',int(self.clock.get_fps()/3))
+    def updatesettings(self):
+        self.frameskip = ui.IDs['frameskip slider'].slider
+        ui.IDs['frameskip text'].text = 'FrameSkip '+str(self.frameskip)
+        ui.IDs['frameskip text'].refresh(ui)
+        self.particlequantity = ui.IDs['particle slider'].slider
+        ui.IDs['particle text'].text = 'Particles '+str(float(round(self.particlequantity,1)))
+        ui.IDs['particle text'].refresh(ui)
+        
+        self.cameraangled = ui.IDs['Rotate Screen'].toggle
+        self.dynamiccamera = ui.IDs['Camera Move'].toggle
+        self.efficientpolygons = ui.IDs['Efficient Polygons'].toggle
+        for a in self.cars:
+            a.camerafollow(self.cameraangled,self.dynamiccamera,self.zoom)
+    
     def main(self):
+        
         self.done = False
         while not self.done:
+##            print(linecrosses-self.prevcrosses)
+            self.prevcrosses = linecrosses
             pygameeventget = ui.loadtickdata()
             for event in pygameeventget:
                 if event.type == pygame.QUIT:
@@ -1195,7 +1261,6 @@ class MAIN:
                             self.drawmat = (self.drawmat+len(self.checkpointmats))%len(self.checkpointmats)
 
             self.screen.fill(self.screenmat[5])
-            start = time.time()
             if ui.activemenu == 'game':    
                 kprs = pygame.key.get_pressed()
                 if kprs[pygame.K_LCTRL] and kprs[pygame.K_s]:
@@ -1203,13 +1268,14 @@ class MAIN:
                     ui.movemenu('saving','down',int(self.clock.get_fps()/3))
                     ui.IDs['opening textbox'].text = ''
                     ui.IDs['opening textbox'].refresh(ui)
-                if kprs[pygame.K_LCTRL] and kprs[pygame.K_o]:
+                elif kprs[pygame.K_LCTRL] and kprs[pygame.K_o]:
                     ui.IDs['opening textbox'].select(ui)
                     ui.movemenu('opening','down',int(self.clock.get_fps()/3))
                     ui.IDs['saving textbox'].text = ''
                     ui.IDs['saving textbox'].refresh(ui)
                 for i,a in enumerate(self.cars):
                     a.control(kprs,self.ground,self.zoom)
+                    a.checkmat(self.ground,self.screenmat)
                     if a.onscreen:
                         for b in range(self.frameskip):
                             a.camerafollow(self.cameraangled,self.dynamiccamera,self.zoom)
@@ -1217,19 +1283,21 @@ class MAIN:
                         surf.fill(self.screenmat[-1])
                         for g in self.ground:
                             g.draw(surf,a.camcords,self.zoom,a.tab,self.efficientpolygons,i)
-                            
+                        
                         if self.tempground != 0:
                             self.tempground[1].draw(surf,a.camcords,self.zoom,a.tab,self.efficientpolygons,i)
+                        for f in range(self.frameskip):
+                            self.particles = a.move(self.ground,self.particles,self.screen,self.particlequantity,self.screenmat,surf)
                         self.particlesdraw(surf,a.camcords)
-                        a.checkmat(self.ground,self.screenmat)
                         a.draw(surf,self.zoom,self.checkpointnum,self.cars)
                         if a.aicontrolled:
                             a.net.displaynetwork(surf,[0,0,0,0])
                         self.screen.blit(surf,(a.tab[0],a.tab[1]))
+                    else:
+                        for f in range(self.frameskip):
+                            a.move(self.ground,[],self.screen,self.particlequantity,self.screenmat,self.screen)
                     for f in range(self.frameskip):
                         a.readyseqfunction(self.screen,self.screenw,self.screenh,self.checkpointnum)
-                    for f in range(self.frameskip):
-                        self.particles = a.move(self.ground,self.particles,self.screen,self.particlequantity,self.screenmat)
                     a.checkpointcollide(self.ground,self.checkpointnum)
                 for a in range(self.frameskip):
                     self.particlesslide()
@@ -1249,7 +1317,6 @@ class MAIN:
                         self.screen.blit(surf,(a.tab[0],a.tab[1]))
                 for a in self.tablines:
                     pygame.draw.line(self.screen,(50,50,50),[a[0][0]*ui.dirscale[0],a[0][1]*ui.dirscale[1]],[a[1][0]*ui.dirscale[0],a[1][1]*ui.dirscale[1]],5)
-##            print(time.time()-start)
             ui.rendergui(self.screen)
             ui.write(self.screen,self.screenw-15,self.screenh-27,str(int(self.clock.get_fps())),20,font='Impact',col=(150,150,150))
             pygame.display.flip()
