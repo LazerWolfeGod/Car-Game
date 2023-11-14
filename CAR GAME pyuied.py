@@ -5,6 +5,15 @@ pygame.init()
 global linecrosses
 linecrosses = 0
 
+def resource_path(relative_path):
+    try:
+    # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 def linecross(L1,L2):
     global linecrosses
     linecrosses+=1
@@ -357,7 +366,7 @@ def polygonlimit(poly,camcords,zoom,tab):
     
 class CAR:
     def __init__(self,x,y,col,length,width,mass,grip,engine,aero,brakeforce,materials,image,carid,controlkeys,tab):
-        self.imageoriginal = pygame.image.load(os.path.abspath(os.getcwd())+'\\'+image).convert_alpha()
+        self.imageoriginal = pygame.image.load(resource_path(f'assets\\{image}')).convert_alpha()
         self.imageoriginal.set_colorkey((255,255,255))
         self.aicontrolled = False
         self.controlkeys = controlkeys
@@ -1124,12 +1133,12 @@ class MAIN:
         ui.makewindowedmenu(0,0,400,280,'settings','main',anchor=('w/2','h/2'),center=True,roundedcorners=10,col=(120,120,120),scalesize=False,ID='settings menu')
         ui.maketext(200,10,'Settings',70,'settings',center=True,centery=False,backingcol=(120,120,120),scalesize=False)
         ui.maketext(10,85,'FrameSkip 1',30,'settings',objanchor=(0,'h/2'),backingcol=(120,120,120),scalesize=False,ID='frameskip text')
-        ui.makeslider(155,85,225,16,10,'settings',minp=1,startp=self.frameskip,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1),border=2,objanchor=(0,'h/2'),increment=1,ID='frameskip slider')
+        ui.makeslider(155,85,225,16,10,'settings',minp=1,startp=self.frameskip,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1,scalesize=False),border=2,objanchor=(0,'h/2'),increment=1,ID='frameskip slider')
         ui.maketext(10,125,'Particles 1',30,'settings',objanchor=(0,'h/2'),backingcol=(120,120,120),scalesize=False,ID='particle text')
-        ui.makeslider(155,125,225,16,1,'settings',minp=0,startp=self.particlequantity,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1),border=2,objanchor=(0,'h/2'),increment=0.1,ID='particle slider')
+        ui.makeslider(155,125,225,16,1,'settings',minp=0,startp=self.particlequantity,roundedcorners=4,scalesize=False,button=ui.makebutton(0,0,'',command=self.updatesettings,roundedcorners=8,width=32,height=32,clickdownsize=1,border=2,runcommandat=1,scalesize=False),border=2,objanchor=(0,'h/2'),increment=0.1,ID='particle slider')
         for i,a in enumerate([('Rotate Screen',self.cameraangled),('Camera Move',self.dynamiccamera),('Efficient Polygons',self.efficientpolygons)]):
             ui.maketext(150,165+i*40,a[0],30,'settings',center=True,backingcol=(120,120,120),scalesize=False)
-            ui.makecheckbox(300,165+i*40,40,self.updatesettings,'settings',spacing=-2,border=4,center=True,clickdownsize=2,width=26,height=26,ID=a[0],toggle=a[1])
+            ui.makecheckbox(300,165+i*40,40,self.updatesettings,'settings',spacing=-2,border=4,center=True,clickdownsize=2,width=26,height=26,ID=a[0],toggle=a[1],scalesize=False)
         
 
         ## opening
@@ -1158,10 +1167,10 @@ class MAIN:
         index = str(index)
         ui.makerect(x,y,216,156,roundedcorners=8,layer=0,ID=index+'rect')
         ui.makebutton(x+200,y+16,'{cross}',25,lambda: self.remcargui(index),spacing=-3,border=2,clickableborder=3,clickdownsize=1,center=True,ID=index+'cross')
-        ui.maketext(x+108,y+35,'',50,img=pygame.image.load(self.imagedata[int(index)%len(self.imagedata)]),ID=index+'car',center=True)
-        ui.maketext(x+15,y+85,'AI Control',35,centery=True,ID=index+'aitext')
+        ui.maketext(x+108,y+35,'',50,img=pygame.image.load(resource_path(f'assets\\{self.imagedata[int(index)%len(self.imagedata)]}')),ID=index+'car',center=True,colorkey=(255,255,255))
+        ui.maketext(x+15,y+85,'AI Control',35,centery=True,ID=index+'aitext',backingcol=(150,150,150))
         ui.makecheckbox(x+170,y+85,45,lambda: self.checkboxupdate(index),spacing=-8,centery=True,clickdownsize=2,toggle=self.makemenucars[int(index)][0],ID=index+'aitoggle')
-        ui.maketext(x+8,y+125,'Split Screen',35,centery=True,ID=index+'sstext')
+        ui.maketext(x+8,y+125,'Split Screen',35,centery=True,ID=index+'sstext',backingcol=(150,150,150))
         ui.makecheckbox(x+170,y+125,45,lambda: self.checkboxupdate(index),spacing=-8,centery=True,clickdownsize=2,toggle=self.makemenucars[int(index)][1],ID=index+'sstoggle')
         self.checkboxupdate(index)
         self.updatesettings()
@@ -1192,11 +1201,9 @@ class MAIN:
         ui.movemenu('settings','down',int(self.clock.get_fps()/3))
     def updatesettings(self):
         self.frameskip = ui.IDs['frameskip slider'].slider
-        ui.IDs['frameskip text'].text = 'FrameSkip '+str(self.frameskip)
-        ui.IDs['frameskip text'].refresh(ui)
+        ui.IDs['frameskip text'].settext('FrameSkip '+str(self.frameskip))
         self.particlequantity = ui.IDs['particle slider'].slider
-        ui.IDs['particle text'].text = 'Particles '+str(float(round(self.particlequantity,1)))
-        ui.IDs['particle text'].refresh(ui)
+        ui.IDs['particle text'].settext('Particles '+str(float(round(self.particlequantity,1))))
         
         self.cameraangled = ui.IDs['Rotate Screen'].toggle
         self.dynamiccamera = ui.IDs['Camera Move'].toggle
